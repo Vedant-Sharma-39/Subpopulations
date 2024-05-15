@@ -1,7 +1,7 @@
 require("deSolve")
 require("reshape2")
 require("dtwclust")
-
+require("pbapply")
 
 t = 25
 del_t = 0.1
@@ -22,36 +22,18 @@ init <- c(x = 0.1, y = 0.1)
 parameters <- c(ry = 1.25, a=0.1, b=0.1, c =1, d = 1)
 
 # Generating parameter sets
-ry_range = seq(1, 1.5, 0.5)
-a_range = seq(0, 1, 0.5)
-b_range = seq(0 ,1 , 0.5)
-c_range = seq(1, 5, 2)
-d_range = seq(1, 5, 2)
+ry_range = seq(1, 1.5, 0.05)
+a_range = seq(0, 1, 0.1)
+b_range = seq(0 ,1 , 0.1)
+c_range = seq(0.5, 5, 0.5)
+d_range = seq(0.5, 5, 0.5)
 
 param_sets <- expand.grid(ry = ry_range,a = a_range,b = b_range, c = c_range,d = d_range)
 
-# Apply the generate_ts function to each row of the parameter sets
-result_list <- lapply(1:nrow(param_sets), function(i) generate_ts(times, init, as.list(param_sets[i,])))
+# Generating time series
+result_list <- pblapply(
+  1:nrow(param_sets), 
+  function(i) generate_ts(times, init, as.list(param_sets[i,])))
 
-subset_result_list <- result_list[sample(length(result_list), 50)]
-clustering_result <- tsclust(series = subset_result_list)
-
-
-cnfg <- compare_clusterings_configs(
-    types = c("p"),
-    k = 2L:10L
-    )
-
-
-sil = cvi_evaluators("Sil")
-
-clustering_result <- compare_clusterings(
-  series = result_list,
-  types = c("p"),
-  configs = cnfg,
-  score.clus = sil$score,
-  pick.clus = sil$pick,
-  return.objects = TRUE
-)
-
-clustering_result$scores
+# Save time series
+save(result_list, file = "Data/result_list.RData")
